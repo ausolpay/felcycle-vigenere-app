@@ -4,6 +4,7 @@ let bruteForceRunning = false;
 let commonWords = [];
 let extraWords = [];
 let combinedWordList = [];
+let combinedWordSet = new Set();
 let startTime;
 
 // Fetch the top 5000 common words
@@ -26,7 +27,7 @@ async function fetchExtraWords() {
     script.src = "extra-words.js";
     document.head.appendChild(script);
 
-    // Wait for the script to load
+    // Wait for script to load
     await new Promise((resolve) => {
       script.onload = resolve;
       script.onerror = () => {
@@ -43,18 +44,27 @@ async function fetchExtraWords() {
   }
 }
 
-// Combine the word lists
+// Combine word lists
 function combineWordLists() {
   combinedWordList = [...new Set([...commonWords, ...extraWords])];
   console.log("Combined Word List:", combinedWordList);
+  combinedWordSet = new Set(combinedWordList);
 }
 
-// Function to create the Vigenère table
-function createVigenereTable(removeDR, addZeroth) {
+function createVigenereTable(removeDR, addZeroth, shiftBy20, startFrom20) {
   let alphabet = ALPHABET;
   if (removeDR) {
     alphabet = alphabet.replace("D", "").replace("R", "");
   }
+
+  if (startFrom20) {
+    alphabet = alphabet.slice(19) + alphabet.slice(0, 19);
+  }
+
+  if (shiftBy20) {
+    alphabet = alphabet.slice(20) + alphabet.slice(0, 20);
+  }
+
   const table = [];
   for (let i = 0; i < alphabet.length; i++) {
     table.push(alphabet.slice(i) + alphabet.slice(0, i));
@@ -65,9 +75,8 @@ function createVigenereTable(removeDR, addZeroth) {
   return table;
 }
 
-// Function to decrypt using a given key
-function decrypt(cipher, key, removeDR, addZeroth) {
-  const table = createVigenereTable(removeDR, addZeroth);
+function decrypt(cipher, key, removeDR, addZeroth, shiftBy20, startFrom20) {
+  const table = createVigenereTable(removeDR, addZeroth, shiftBy20, startFrom20);
   const alphabet = table[0];
   const result = [];
   const keyLength = key.length;
@@ -82,7 +91,19 @@ function decrypt(cipher, key, removeDR, addZeroth) {
   return result.join("");
 }
 
-// Function to update Anagram Box
+const modeSwitch = document.getElementById("mode-switch");
+modeSwitch.addEventListener("change", () => {
+  if (modeSwitch.checked) {
+    document.body.classList.remove("light-mode");
+    document.body.classList.add("dark-mode");
+  } else {
+    document.body.classList.remove("dark-mode");
+    document.body.classList.add("light-mode");
+  }
+});
+
+
+
 function updateAnagramBox(key, decrypted, anagrams = []) {
   const anagramBox = document.getElementById("anagrams");
   if (anagrams.length > 0) {
@@ -93,7 +114,20 @@ function updateAnagramBox(key, decrypted, anagrams = []) {
   anagramBox.scrollTop = anagramBox.scrollHeight;
 }
 
-// Generate Anagrams with batching and throttling
+document.getElementById("add-anagram-input").addEventListener("click", () => {
+  const manualInput = document.getElementById("manual-anagram-input");
+  const anagramBox = document.getElementById("anagrams");
+
+  const words = manualInput.value.trim();
+  if (words) {
+    anagramBox.value += (anagramBox.value.trim() ? "\n" : "") + words;
+    anagramBox.scrollTop = anagramBox.scrollHeight;
+    manualInput.value = "";
+  } else {
+    alert("Please enter some words before adding.");
+  }
+});
+
 document.getElementById("generate-anagrams").addEventListener("click", () => {
   const anagramBox = document.getElementById("anagrams");
   const lines = anagramBox.value.trim().split("\n").filter((line) => line.trim() !== "");
@@ -105,12 +139,15 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
     return;
   }
 
+  // Clear previous results
+  anagramBox.value = "";
+
   anagramProgressBar.classList.add("loading-animation");
   anagramProgressBar.style.width = "0%";
   anagramProgressBar.style.transition = "none";
   anagramProgressText.textContent = "0% - Starting...";
 
-  const isWordValid = (word) => combinedWordList.includes(word.toUpperCase());
+  const isWordValid = (word) => combinedWordSet.has(word.toUpperCase());
 
   const generateAnagrams = (text) => {
     const resultSet = new Set();
@@ -125,6 +162,25 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
     };
     generate("", text);
     return Array.from(resultSet);
+  };
+
+  const isSubset = (word, text) => {
+    const wordChars = word.split("");
+    const textChars = text.split("");
+    for (const char of wordChars) {
+      const index = textChars.indexOf(char);
+      if (index === -1) return false;
+      textChars.splice(index, 1);
+    }
+    return true;
+  };
+
+  const removeChars = (text, word) => {
+    let result = text;
+    for (const char of word) {
+      result = result.replace(char, "");
+    }
+    return result;
   };
 
   const generateMultiWordAnagrams = (text) => {
@@ -150,34 +206,15 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
     return Array.from(resultSet);
   };
 
-  const isSubset = (word, text) => {
-    const wordChars = word.split("");
-    const textChars = text.split("");
-    for (const char of wordChars) {
-      const index = textChars.indexOf(char);
-      if (index === -1) return false;
-      textChars.splice(index, 1);
-    }
-    return true;
-  };
-
-  const removeChars = (text, word) => {
-    let result = text;
-    for (const char of word) {
-      result = result.replace(char, "");
-    }
-    return result;
-  };
-
   let currentIndex = 0;
   const batchSize = 5;
-  let totalAnagramsCount = 0; // Counter for total anagrams generated
-  let totalProcessedLines = 0; // Counter for processed input lines
-  const allAnagrams = []; // Collect all unique anagrams
+  let totalAnagramsCount = 0;
+  let totalProcessedLines = 0;
+  const allAnagrams = [];
+  let linesFoundCount = 0;
 
   async function processBatch() {
     const newContent = [];
-    let anyWordsGenerated = false;
 
     for (let i = 0; i < batchSize && currentIndex < lines.length; i++, currentIndex++) {
       const line = lines[currentIndex];
@@ -185,13 +222,13 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
       const decrypted = rest.join(" ").trim();
       const anagrams = generateMultiWordAnagrams(decrypted.replace(/\s+/g, ""));
 
-      totalProcessedLines++; // Increment processed lines count
+      totalProcessedLines++;
 
       if (anagrams.length > 0) {
-        totalAnagramsCount += anagrams.length; // Count total anagrams
-        allAnagrams.push(...anagrams); // Collect all anagrams
+        totalAnagramsCount += anagrams.length;
+        allAnagrams.push(...anagrams);
         newContent.push({ key, decrypted, anagrams });
-        anyWordsGenerated = true;
+        linesFoundCount++;
       }
     }
 
@@ -201,31 +238,26 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
       });
     }
 
-    // Update progress bar
     const progress = (currentIndex / lines.length) * 100;
     anagramProgressBar.style.width = `${progress}%`;
     anagramProgressBar.style.transition = "width 0.2s linear";
     anagramProgressText.textContent = `${Math.round(progress)}%`;
 
-    // Wait briefly to update the UI
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     if (currentIndex < lines.length) {
-      setTimeout(processBatch, 50); // Throttle for smoother updates
+      setTimeout(processBatch, 50);
     } else {
-      // Finalize progress
       anagramProgressBar.classList.remove("loading-animation");
       anagramProgressBar.style.width = "100%";
       anagramProgressText.textContent = "100% - Complete!";
-      
-      // Remove duplicates from all anagrams
+
       const uniqueAnagrams = [...new Set(allAnagrams)];
 
-      // Display results
-      if (!anyWordsGenerated) {
-        alert("Anagrams Generated");
+      if (uniqueAnagrams.length === 0) {
+        alert("No anagrams found.");
       } else {
-        alert(`Anagrams generation complete. ${uniqueAnagrams.length} unique anagram(s) found across ${totalProcessedLines} input(s).`);
+        alert(`${linesFoundCount} keys found ${uniqueAnagrams.length} anagram words`);
       }
     }
   }
@@ -233,48 +265,13 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
   processBatch();
 });
 
-
-
-// Updated event listener for Generate Anagrams
-document.getElementById("generate-anagrams").addEventListener("click", () => {
-  const anagramBox = document.getElementById("anagrams");
-  anagramBox.value = ""; // Clear previous results
-
-  const inputLines = document.getElementById("cipher").value.trim().split("\n");
-  const validResults = [];
-  let totalAnagramCount = 0; // Counter for total anagrams
-
-  inputLines.forEach((line) => {
-    const [key, ...rest] = line.split(" ");
-    const decrypted = rest.join(" ").trim();
-    const anagrams = generateMultiWordAnagrams(decrypted.replace(/\s+/g, ""));
-
-    if (anagrams.length > 0) {
-      totalAnagramCount += anagrams.length; // Add to total count
-      validResults.push({ key, decrypted, anagrams });
-    }
-  });
-
-  if (validResults.length > 0) {
-    validResults.forEach(({ key, decrypted, anagrams }, index) => {
-      updateAnagramBox(key, decrypted, anagrams);
-
-      // Add a blank line space between results
-      if (index < validResults.length - 1) {
-        anagramBox.value += `\n`; // Add extra blank line after each group except the last
-      }
-    });
-
-  }
-});
-
-
-// Manual Solve Button
 document.getElementById("manual-solve").addEventListener("click", () => {
   const cipher = document.getElementById("cipher").value.toUpperCase();
   const key = document.getElementById("key").value.toUpperCase();
   const removeDR = document.getElementById("remove-d-r").checked;
   const addZeroth = document.getElementById("zeroth").checked;
+  const shiftBy20 = document.getElementById("shift-by-20").checked;
+  const startFrom20 = document.getElementById("start-from-20").checked;
 
   if (!cipher) {
     alert("Please enter a cipher word.");
@@ -286,7 +283,7 @@ document.getElementById("manual-solve").addEventListener("click", () => {
   }
 
   try {
-    const decrypted = decrypt(cipher, key, removeDR, addZeroth);
+    const decrypted = decrypt(cipher, key, removeDR, addZeroth, shiftBy20, startFrom20);
     const output = document.getElementById("output");
     output.value = `Key: ${key}, Decrypted: ${decrypted}`;
     output.scrollTop = output.scrollHeight;
@@ -297,7 +294,6 @@ document.getElementById("manual-solve").addEventListener("click", () => {
   }
 });
 
-// Adjust wildcard application logic
 function applyWildCard(wildCardKey, dynamicKey) {
   const leftKey = wildCardKey.left || "";
   const rightKey = wildCardKey.right || "";
@@ -316,10 +312,13 @@ async function bruteForce(
   useWordListKeysOnly,
   useFourPlusWords,
   partialKey,
-  wildCardKey
+  wildCardKey,
+  shiftBy20,
+  startFrom20
 ) {
   bruteForceRunning = true;
-  const alphabet = createVigenereTable(removeDR, addZeroth)[0];
+  const table = createVigenereTable(removeDR, addZeroth, shiftBy20, startFrom20);
+  const alphabet = table[0];
   const progressBar = document.getElementById("progress");
   const progressText = document.getElementById("percentage");
   const output = document.getElementById("output");
@@ -329,7 +328,6 @@ async function bruteForce(
   const fourPlusKeyResultsOutput = document.getElementById("four-plus-key-results-output");
   const multiWordResultsOutput = document.getElementById("multi-word-results-output");
   const fullWordResultsOutput = document.getElementById("full-word-results-output");
-  const anagramBox = document.getElementById("anagrams");
   const timeRemaining = document.getElementById("time-remaining");
 
   let totalKeys;
@@ -350,7 +348,6 @@ async function bruteForce(
 
   function generateKey(index) {
     const keyArray = partialKey.padEnd(keyLength, "*").split("");
-
     for (let i = 0; i < keyArray.length; i++) {
       if (keyArray[i] === "*") {
         keyArray[i] = alphabet[Math.floor(index / Math.pow(alphabet.length, i)) % alphabet.length];
@@ -367,9 +364,9 @@ async function bruteForce(
         continue;
       }
 
-      const keys = useWordListKeysOnly || useFourPlusWords ? [keysToSearch[currentKeyIndex]] : [generateKey(currentKeyIndex)];
+      const keys = (useWordListKeysOnly || useFourPlusWords) ? [keysToSearch[currentKeyIndex]] : [generateKey(currentKeyIndex)];
       for (const key of keys) {
-        const decrypted = decrypt(cipher, key, removeDR, addZeroth);
+        const decrypted = decrypt(cipher, key, removeDR, addZeroth, shiftBy20, startFrom20);
 
         // Append to results
         output.value += `Key: ${key}, Decrypted: ${decrypted}\n`;
@@ -380,7 +377,7 @@ async function bruteForce(
           filteredKeysOutput.value += `Key: ${key} (Decrypted: ${decrypted})\n`;
           filteredKeysOutput.scrollTop = filteredKeysOutput.scrollHeight;
 
- // 4+ Key Results
+          // 4+ Key Results
           const matchesKey = combinedWordList.some((word) => word.length >= 4 && key.includes(word));
           if (matchesKey) {
             fourPlusKeyResultsOutput.value += `Key: ${key} (Decrypted: ${decrypted})\n`;
@@ -389,7 +386,7 @@ async function bruteForce(
           }
         }
 
-        // Filtered Decrypted Results
+        // Filtered Decrypted
         if (combinedWordList.some((word) => decrypted.includes(word))) {
           filteredDecryptedOutput.value += `Decrypted: ${decrypted} (Key: ${key})\n`;
           filteredDecryptedOutput.scrollTop = filteredDecryptedOutput.scrollHeight;
@@ -419,67 +416,49 @@ async function bruteForce(
         };
 
         const wordMatches = findDistinctWords(decrypted, combinedWordList);
-
         if (wordMatches) {
           multiWordResultsOutput.value += `Decrypted: ${decrypted} (Key: ${key})\nWords: ${wordMatches.join(", ")}\n`;
           multiWordResultsOutput.scrollTop = multiWordResultsOutput.scrollHeight;
         }
 
-          // Full Word Results (8+ characters from list)
-          if (combinedWordList.some((word) => word.length === 8 && decrypted.includes(word))) {
-            fullWordResultsOutput.value += `Decrypted: ${decrypted} (Key: ${key})\n`;
-            fullWordResultsOutput.scrollTop = fullWordResultsOutput.scrollHeight;
-          }
+        // Full Word Results (8 characters)
+        if (combinedWordList.some((word) => word.length === 8 && decrypted.includes(word))) {
+          fullWordResultsOutput.value += `Decrypted: ${decrypted} (Key: ${key})\n`;
+          fullWordResultsOutput.scrollTop = fullWordResultsOutput.scrollHeight;
         }
+      }
 
-      // Update progress bar after each batch
+      // Update progress
       const progress = ((currentKeyIndex + 1) / totalKeys) * 100;
-      progressBar.style.width = `${progress}%`;
-      progressBar.style.transition = 'width 0.2s linear';
-      progressText.textContent = `${Math.round(progress)}%`;
-      let currentLegend = progressText.textContent.split(' - ')[1] || '';
+      document.getElementById("progress").style.width = `${progress}%`;
+      document.getElementById("progress").style.transition = 'width 0.2s linear';
+      document.getElementById("percentage").textContent = `${Math.round(progress)}%`;
 
-      // Calculate and update estimated time remaining
       const elapsedTime = Date.now() - startTime;
       const estimatedTotalTime = (elapsedTime / (currentKeyIndex + 1)) * totalKeys;
       const remainingTime = estimatedTotalTime - elapsedTime;
       const hours = Math.floor(remainingTime / 3600000);
       const minutes = Math.floor((remainingTime % 3600000) / 60000);
       const seconds = Math.floor((remainingTime % 60000) / 1000);
-      timeRemaining.textContent = `Estimated time remaining: ${hours}h ${minutes}m ${seconds}s`;
+      document.getElementById("time-remaining").textContent = `Estimated time remaining: ${hours}h ${minutes}m ${seconds}s`;
 
-      // Wait for the progress bar to apply the change
       await new Promise((resolve) => setTimeout(resolve, 0.01));
 
-      // Update progress legend
-      if (progress < 25) {
-        progressText.textContent = `${Math.round(progress)}% - Just getting started...`;
-      } else if (progress < 50) {
-        progressText.textContent = `${Math.round(progress)}% - Making progress!`;
-      } else if (progress < 75) {
-        progressText.textContent = `${Math.round(progress)}% - Over halfway there!`;
-      } else if (progress < 100) {
-        progressText.textContent = `${Math.round(progress)}% - Almost finished!`;
-      } else {
-        progressText.textContent = `${Math.round(progress)}% - Complete!`;
-      }
-
       currentKeyIndex++;
-      if (currentKeyIndex % 100 === 0) await new Promise((r) => setTimeout(r, 0)); // Yield to the browser
+      if (currentKeyIndex % 100 === 0) await new Promise((r) => setTimeout(r, 0));
     }
 
     bruteForceRunning = false;
     if (!bruteForcePaused) alert("Brute force complete!");
   }
 
-  progressBar.style.width = "0%";
-  progressBar.style.transition = 'none';
-  progressText.textContent = "0% - Starting...";
-  timeRemaining.textContent = "Estimated time remaining: Calculating...";
+  document.getElementById("progress").style.width = "0%";
+  document.getElementById("progress").style.transition = 'none';
+  document.getElementById("percentage").textContent = "0% - Starting...";
+  document.getElementById("time-remaining").textContent = "Estimated time remaining: Calculating...";
   await processBatch();
 }
 
-// Reset the App
 document.getElementById("reset-app").addEventListener("click", () => {
   bruteForcePaused = false;
   bruteForceRunning = false;
@@ -499,28 +478,36 @@ document.getElementById("reset-app").addEventListener("click", () => {
   document.getElementById("percentage").textContent = "0%";
   document.getElementById("time-remaining").textContent = "";
 
-  // Reset checkboxes or options if they exist
   const checkboxes = document.querySelectorAll("input[type='checkbox']");
   checkboxes.forEach((checkbox) => {
     checkbox.checked = false;
   });
 
-  // Reset anagram progress bar
   document.getElementById("anagram-progress").style.width = "0%";
   document.getElementById("anagram-progress").style.transition = 'none';
   document.getElementById("anagram-percentage").textContent = "0%";
 });
 
-
-// Pause/Resume Brute Force
 document.getElementById("pause-resume").addEventListener("click", () => {
   bruteForcePaused = !bruteForcePaused;
   document.getElementById("pause-resume").textContent = bruteForcePaused ? "Resume" : "Pause";
 });
 
-// Brute Force Button
 document.getElementById("brute-force").addEventListener("click", async () => {
-  if (bruteForceRunning) return alert("Brute force is already running!");
+  // If brute forcing is in progress and hasn't been paused, stop it first
+  if (bruteForceRunning && !bruteForcePaused) {
+    bruteForceRunning = false; // stop current brute force
+    // We can optionally wait a bit to ensure processBatch loop ends
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  // Reset states for a new run
+  bruteForcePaused = false;
+  bruteForceRunning = false;
+  document.getElementById("pause-resume").textContent = "Pause";
+  document.getElementById("progress").style.width = "0%";
+  document.getElementById("progress").style.transition = 'none';
+  document.getElementById("percentage").textContent = "0% - Starting...";
 
   const cipher = document.getElementById("cipher").value.toUpperCase();
   const removeDR = document.getElementById("remove-d-r").checked;
@@ -537,14 +524,14 @@ document.getElementById("brute-force").addEventListener("click", async () => {
     mid: document.getElementById("mid-key").value.toUpperCase(),
     right: document.getElementById("right-key").value.toUpperCase(),
   };
+  const shiftBy20 = document.getElementById("shift-by-20").checked;
+  const startFrom20 = document.getElementById("start-from-20").checked;
 
   if (!cipher) {
     alert("Please enter a cipher word.");
     return;
   }
 
-  document.getElementById("progress").style.width = "0%";
-  document.getElementById("percentage").textContent = "0% - Starting...";
   document.getElementById("output").value = "";
   document.getElementById("filtered-keys-output").value = "";
   document.getElementById("filtered-decrypted-output").value = "";
@@ -565,11 +552,12 @@ document.getElementById("brute-force").addEventListener("click", async () => {
     useWordListKeysOnly,
     useFourPlusWords,
     partialKey,
-    wildCardKey
+    wildCardKey,
+    shiftBy20,
+    startFrom20
   );
 });
 
-// Fetch common words and extra words on load
 window.addEventListener("DOMContentLoaded", async () => {
   await fetchCommonWords();
   await fetchExtraWords();
