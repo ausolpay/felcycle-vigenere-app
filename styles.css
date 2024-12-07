@@ -79,7 +79,16 @@ textarea {
   transition: width 0.1s ease-out; /* Smooth animation for each progress update */
 }
 
+#left-key, #right-key {
+max-width: 40%;
+margin-right: 10px;
+margin-bottom: 10px;
+}
 
+#mid-key {
+  visibility: hidden;
+  height: 1px;
+}
 
 #progress {
   width: 0;
