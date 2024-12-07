@@ -498,7 +498,19 @@ document.getElementById("reset-app").addEventListener("click", () => {
   document.getElementById("progress").style.transition = 'none';
   document.getElementById("percentage").textContent = "0%";
   document.getElementById("time-remaining").textContent = "";
+
+  // Reset checkboxes or options if they exist
+  const checkboxes = document.querySelectorAll("input[type='checkbox']");
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+
+  // Reset anagram progress bar
+  document.getElementById("anagram-progress").style.width = "0%";
+  document.getElementById("anagram-progress").style.transition = 'none';
+  document.getElementById("anagram-percentage").textContent = "0%";
 });
+
 
 // Pause/Resume Brute Force
 document.getElementById("pause-resume").addEventListener("click", () => {
