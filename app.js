@@ -83,9 +83,13 @@ function decrypt(cipher, key, removeDR, addZeroth) {
 }
 
 // Function to update Anagram Box
-function updateAnagramBox(key, decrypted) {
+function updateAnagramBox(key, decrypted, anagrams = []) {
   const anagramBox = document.getElementById("anagrams");
-  anagramBox.value += `(${key}) ${decrypted}\n`;
+  if (anagrams.length > 0) {
+    anagramBox.value += `${key} ${decrypted}\n${anagrams.join("\n")}\n\n`;
+  } else {
+    anagramBox.value += `(${key}) ${decrypted}\n`;
+  }
   anagramBox.scrollTop = anagramBox.scrollHeight;
 }
 
@@ -96,7 +100,15 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
   const anagramProgressBar = document.getElementById("anagram-progress");
   const anagramProgressText = document.getElementById("anagram-percentage");
 
+  if (!lines.length) {
+    alert("No input provided. Please enter text to generate anagrams.");
+    return;
+  }
+
   anagramProgressBar.classList.add("loading-animation");
+  anagramProgressBar.style.width = "0%";
+  anagramProgressBar.style.transition = "none";
+  anagramProgressText.textContent = "0% - Starting...";
 
   const isWordValid = (word) => combinedWordList.includes(word.toUpperCase());
 
@@ -159,6 +171,9 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
 
   let currentIndex = 0;
   const batchSize = 5;
+  let totalAnagramsCount = 0; // Counter for total anagrams generated
+  let totalProcessedLines = 0; // Counter for processed input lines
+  const allAnagrams = []; // Collect all unique anagrams
 
   async function processBatch() {
     const newContent = [];
@@ -169,58 +184,90 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
       const [key, ...rest] = line.split(" ");
       const decrypted = rest.join(" ").trim();
       const anagrams = generateMultiWordAnagrams(decrypted.replace(/\s+/g, ""));
+
+      totalProcessedLines++; // Increment processed lines count
+
       if (anagrams.length > 0) {
-        newContent.push(`(${key}) ${decrypted}\n${anagrams.join(" \n")}`);
+        totalAnagramsCount += anagrams.length; // Count total anagrams
+        allAnagrams.push(...anagrams); // Collect all anagrams
+        newContent.push({ key, decrypted, anagrams });
         anyWordsGenerated = true;
       }
     }
 
-    if (anyWordsGenerated) {
-      anagramBox.value += newContent.join("\n\n");
-      anagramBox.scrollTop = anagramBox.scrollHeight;
+    if (newContent.length > 0) {
+      newContent.forEach(({ key, decrypted, anagrams }) => {
+        updateAnagramBox(key, decrypted, anagrams);
+      });
     }
 
     // Update progress bar
-    const progress = ((currentIndex) / lines.length) * 100;
+    const progress = (currentIndex / lines.length) * 100;
     anagramProgressBar.style.width = `${progress}%`;
-    anagramProgressBar.style.transition = 'width 0.2s linear';
+    anagramProgressBar.style.transition = "width 0.2s linear";
     anagramProgressText.textContent = `${Math.round(progress)}%`;
 
-    // Wait for the progress bar to apply the change
-    await new Promise((resolve) => setTimeout(resolve, 0.01));
-
-    // Update progress legend
-    if (progress < 25) {
-      anagramProgressText.textContent += " - Just getting started...";
-    } else if (progress < 50) {
-      anagramProgressText.textContent += " - Making progress!";
-    } else if (progress < 75) {
-      anagramProgressText.textContent += " - Over halfway there!";
-    } else if (progress < 100) {
-      anagramProgressText.textContent += " - Almost done!";
-    } else {
-      anagramProgressText.textContent += " - Complete!";
-    }
+    // Wait briefly to update the UI
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     if (currentIndex < lines.length) {
-      setTimeout(processBatch, 50); // Throttle to prevent freezing
+      setTimeout(processBatch, 50); // Throttle for smoother updates
     } else {
+      // Finalize progress
       anagramProgressBar.classList.remove("loading-animation");
       anagramProgressBar.style.width = "100%";
       anagramProgressText.textContent = "100% - Complete!";
+      
+      // Remove duplicates from all anagrams
+      const uniqueAnagrams = [...new Set(allAnagrams)];
+
+      // Display results
       if (!anyWordsGenerated) {
-        alert("No anagrams were found.");
+        alert("Anagrams Generated");
       } else {
-        alert(`Anagrams generation complete. ${newContent.length} anagram(s) found.`);
+        alert(`Anagrams generation complete. ${uniqueAnagrams.length} unique anagram(s) found across ${totalProcessedLines} input(s).`);
       }
     }
   }
 
-  anagramProgressBar.style.width = "0%";
-  anagramProgressBar.style.transition = 'none';
-  anagramProgressText.textContent = "0% - Starting...";
   processBatch();
 });
+
+
+
+// Updated event listener for Generate Anagrams
+document.getElementById("generate-anagrams").addEventListener("click", () => {
+  const anagramBox = document.getElementById("anagrams");
+  anagramBox.value = ""; // Clear previous results
+
+  const inputLines = document.getElementById("cipher").value.trim().split("\n");
+  const validResults = [];
+  let totalAnagramCount = 0; // Counter for total anagrams
+
+  inputLines.forEach((line) => {
+    const [key, ...rest] = line.split(" ");
+    const decrypted = rest.join(" ").trim();
+    const anagrams = generateMultiWordAnagrams(decrypted.replace(/\s+/g, ""));
+
+    if (anagrams.length > 0) {
+      totalAnagramCount += anagrams.length; // Add to total count
+      validResults.push({ key, decrypted, anagrams });
+    }
+  });
+
+  if (validResults.length > 0) {
+    validResults.forEach(({ key, decrypted, anagrams }, index) => {
+      updateAnagramBox(key, decrypted, anagrams);
+
+      // Add a blank line space between results
+      if (index < validResults.length - 1) {
+        anagramBox.value += `\n`; // Add extra blank line after each group except the last
+      }
+    });
+
+  }
+});
+
 
 // Manual Solve Button
 document.getElementById("manual-solve").addEventListener("click", () => {
