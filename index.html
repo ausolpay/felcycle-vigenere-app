@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vigenère Cipher Brute Forcer</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .loading-animation {
+      animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+      0% { background-color: #4caf50; }
+      50% { background-color: #81c784; }
+      100% { background-color: #4caf50; }
+    }
+
+    .progress-bar {
+      width: 100%;
+      background-color: #f3f3f3;
+      border: 1px solid #ddd;
+      height: 20px;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar > div {
+      height: 100%;
+      width: 0;
+      background-color: #4caf50;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>Vigenère Cipher Brute Forcer</h1>
+
+    <!-- Input for Cipher Word -->
+    <div class="input-group">
+      <label for="cipher">Cipher Word:</label>
+      <input type="text" id="cipher" placeholder="Enter cipher word">
+    </div>
+
+    <!-- Input for Manual Key -->
+    <div class="input-group">
+      <label for="key">Key (Optional for Manual Solve):</label>
+      <input type="text" id="key" placeholder="Enter key for manual solve">
+    </div>
+
+    <div class="input-group">
+      <label for="partial-key">Partial Key (Optional):</label>
+      <input type="text" id="partial-key" placeholder="Enter partial key">
+    </div>
+
+    <!-- Key Length Selection -->
+    <div class="input-group">
+      <label for="key-length">Key Length for Brute Force:</label>
+      <select id="key-length">
+        <option value="2">2 Characters</option>
+        <option value="3">3 Characters</option>
+        <option value="4">4 Characters</option>
+        <option value="5">5 Characters</option>
+        <option value="6">6 Characters</option>
+        <option value="7">7 Characters</option>
+        <option value="8">8 Characters</option>
+      </select>
+    </div>
+
+    <!-- Filter Options -->
+    <div class="options">
+      <label><input type="checkbox" id="zeroth"> Add Zeroth</label>
+      <label><input type="checkbox" id="remove-d-r"> Remove D and R</label>
+      <label><input type="checkbox" id="filter-repeated-keys"> Only Keys with Repeated Letters</label>
+      <label><input type="checkbox" id="filter-common-words"> Only Keys with Common Words</label>
+      <label><input type="checkbox" id="filter-letters-repeated"> Only Results with Letters Repeated Twice</label>
+      <label><input type="checkbox" id="use-word-list-keys-only"> Use Word List Keys Only</label>
+      <label style="visibility: hidden;"><input type="checkbox" id="use-four-plus-words"> Use Combined Word List Keys (4 Characters Only)</label>
+    </div>
+
+    <!-- Buttons -->
+    <div class="buttons">
+      <button id="brute-force">Brute Force</button>
+      <button id="manual-solve">Solve</button>
+      <button id="pause-resume">Pause</button>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+      <div id="progress"></div>
+    </div>
+    <p id="percentage" style="text-align: center; margin: 10px 0;">0%</p>
+    <p id="time-remaining" style="text-align: center; margin: 10px 0;"></p>
+
+    <!-- Output Sections -->
+    <div class="results">
+      <h2>Results</h2>
+      <textarea id="output" placeholder="Results will appear here" readonly></textarea>
+    </div>
+
+    <!-- Filtered Keys -->
+    <div class="filters">
+      <h3>Filtered Keys</h3>
+      <textarea id="filtered-keys-output" placeholder="Filtered keys will appear here" readonly></textarea>
+    </div>
+
+    <!-- Filtered Decrypted Results -->
+    <div class="filters">
+      <h3>Filtered Decrypted Results</h3>
+      <textarea id="filtered-decrypted-output" placeholder="Filtered decrypted results will appear here" readonly></textarea>
+    </div>
+
+    <!-- 4+ Word Results -->
+    <div class="filters">
+      <h3>4+ Word Results</h3>
+      <textarea id="four-plus-results-output" placeholder="4+ word results will appear here" readonly></textarea>
+    </div>
+
+    <!-- 4+ Key Results -->
+    <div class="filters">
+      <h3>4+ Key Results</h3>
+      <textarea id="four-plus-key-results-output" placeholder="4+ key results will appear here" readonly></textarea>
+    </div>
+
+    <!-- Multi-Word Results -->
+    <div class="filters">
+      <h3>Multi-Word Results</h3>
+      <textarea id="multi-word-results-output" placeholder="Multi-word results will appear here" readonly></textarea>
+    </div>
+
+    <!-- Full Word Results -->
+    <div class="filters">
+      <h3>Full Word Results (8 Characters)</h3>
+      <textarea id="full-word-results-output" placeholder="Full word results will appear here" readonly></textarea>
+    </div>
+
+    <!-- Generate Anagrams -->
+    <div class="filters">
+      <h3>Generate Anagrams</h3>
+      <button id="generate-anagrams">Generate Anagrams</button>
+      <div class="progress-bar">
+        <div id="anagram-progress"></div>
+      </div>
+      <p id="anagram-percentage" style="text-align: center; margin: 10px 0;">0%</p>
+      <textarea id="anagrams" style="height: 200px;" placeholder="Anagrams will appear here" readonly></textarea>
+    </div>
+
+    <!-- Reset Button -->
+    <div class="buttons">
+      <button id="reset-app">Reset</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
