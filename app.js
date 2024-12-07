@@ -108,13 +108,15 @@ function updateAnagramBox(key, decrypted, anagrams = []) {
   anagramBox.scrollTop = anagramBox.scrollHeight;
 }
 
+// Modified here to add "(manual) " prefix
 document.getElementById("add-anagram-input").addEventListener("click", () => {
   const manualInput = document.getElementById("manual-anagram-input");
   const anagramBox = document.getElementById("anagrams");
 
   const words = manualInput.value.trim();
   if (words) {
-    anagramBox.value += (anagramBox.value.trim() ? "\n" : "") + words;
+    const lineToAdd = `(manual) ${words}`;
+    anagramBox.value += (anagramBox.value.trim() ? "\n" : "") + lineToAdd;
     anagramBox.scrollTop = anagramBox.scrollHeight;
     manualInput.value = "";
   } else {
@@ -325,7 +327,6 @@ function generateKeyFunction(alphabet, partialKey, keyLength, wildCardKey) {
     }
 
     const generatedKey = applyWildCard(wildCardKey, keyArray.join(""));
-    // Log every 10000th key to not spam the console too much
     if (index % 10000 === 0) {
       console.log("Generated Key (sample):", generatedKey);
     }
@@ -333,7 +334,6 @@ function generateKeyFunction(alphabet, partialKey, keyLength, wildCardKey) {
   };
 }
 
-// Brute Force with Dynamic Key Generation
 async function bruteForce(
   cipher,
   removeDR,
@@ -403,16 +403,13 @@ async function bruteForce(
       const key = generateKey(currentKeyIndex);
       const decrypted = decrypt(cipher, key, removeDR, addZeroth, shiftBy20, startFrom20);
 
-      // Append to results
       output.value += `Key: ${key}, Decrypted: ${decrypted}\n`;
       output.scrollTop = output.scrollHeight;
 
-      // Filtered Keys
       if (combinedWordList.some((word) => key.includes(word))) {
         filteredKeysOutput.value += `Key: ${key} (Decrypted: ${decrypted})\n`;
         filteredKeysOutput.scrollTop = filteredKeysOutput.scrollHeight;
 
-        // 4+ Key Results
         const matchesKey = combinedWordList.some((word) => word.length >= 4 && key.includes(word));
         if (matchesKey) {
           fourPlusKeyResultsOutput.value += `Key: ${key} (Decrypted: ${decrypted})\n`;
@@ -421,20 +418,17 @@ async function bruteForce(
         }
       }
 
-      // Filtered Decrypted
       if (combinedWordList.some((word) => decrypted.includes(word))) {
         filteredDecryptedOutput.value += `Decrypted: ${decrypted} (Key: ${key})\n`;
         filteredDecryptedOutput.scrollTop = filteredDecryptedOutput.scrollHeight;
       }
 
-      // 4+ Word Results
       const matchesFourPlus = combinedWordList.filter((word) => word.length >= 4 && decrypted.includes(word));
       if (matchesFourPlus.length > 0) {
         fourPlusResultsOutput.value += `Decrypted: ${decrypted} (Key: ${key})\n`;
         fourPlusResultsOutput.scrollTop = fourPlusResultsOutput.scrollHeight;
       }
 
-      // Multi-Word Results
       const findDistinctWords = (text, wordList) => {
         let remainingText = text.toUpperCase();
         const foundWords = [];
@@ -456,13 +450,11 @@ async function bruteForce(
         multiWordResultsOutput.scrollTop = multiWordResultsOutput.scrollHeight;
       }
 
-      // Full Word Results (8 characters)
       if (combinedWordList.some((word) => word.length === 8 && decrypted.includes(word))) {
         fullWordResultsOutput.value += `Decrypted: ${decrypted} (Key: ${key})\n`;
         fullWordResultsOutput.scrollTop = fullWordResultsOutput.scrollHeight;
       }
 
-      // Update progress
       const progress = ((currentKeyIndex + 1) / totalKeys) * 100;
       document.getElementById("progress").style.width = `${progress}%`;
       document.getElementById("progress").style.transition = 'width 0.2s linear';
