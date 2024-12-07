@@ -250,6 +250,13 @@ document.getElementById("manual-solve").addEventListener("click", () => {
   }
 });
 
+// Adjust wildcard application logic
+function applyWildCard(wildCardKey, dynamicKey) {
+  const leftKey = wildCardKey.left || "";
+  const rightKey = wildCardKey.right || "";
+  return leftKey + dynamicKey + rightKey;
+}
+
 // Brute Force with Dynamic Key Generation
 async function bruteForce(
   cipher,
@@ -261,7 +268,8 @@ async function bruteForce(
   filterLettersRepeated,
   useWordListKeysOnly,
   useFourPlusWords,
-  partialKey
+  partialKey,
+  wildCardKey
 ) {
   bruteForceRunning = true;
   const alphabet = createVigenereTable(removeDR, addZeroth)[0];
@@ -294,26 +302,15 @@ async function bruteForce(
   startTime = Date.now();
 
   function generateKey(index) {
-    const availableSlots = keyLength - partialKey.length;
-    const combinations = [];
+    const keyArray = partialKey.padEnd(keyLength, "*").split("");
 
-    // Generate all permutations around the partial key
-    for (let prefixLength = 0; prefixLength <= availableSlots; prefixLength++) {
-      const prefix = [];
-      const suffix = [];
-
-      for (let i = 0; i < prefixLength; i++) {
-        prefix.push(ALPHABET[Math.floor(index / Math.pow(ALPHABET.length, i)) % ALPHABET.length]);
+    for (let i = 0; i < keyArray.length; i++) {
+      if (keyArray[i] === "*") {
+        keyArray[i] = alphabet[Math.floor(index / Math.pow(alphabet.length, i)) % alphabet.length];
       }
-
-      for (let j = 0; j < availableSlots - prefixLength; j++) {
-        suffix.push(ALPHABET[Math.floor(index / Math.pow(ALPHABET.length, j + prefixLength)) % ALPHABET.length]);
-      }
-
-      combinations.push(prefix.join("") + partialKey + suffix.join(""));
     }
 
-    return combinations;
+    return applyWildCard(wildCardKey, keyArray.join(""));
   }
 
   async function processBatch() {
@@ -323,7 +320,7 @@ async function bruteForce(
         continue;
       }
 
-      const keys = useWordListKeysOnly || useFourPlusWords ? [keysToSearch[currentKeyIndex]] : generateKey(currentKeyIndex);
+      const keys = useWordListKeysOnly || useFourPlusWords ? [keysToSearch[currentKeyIndex]] : [generateKey(currentKeyIndex)];
       for (const key of keys) {
         const decrypted = decrypt(cipher, key, removeDR, addZeroth);
 
@@ -476,6 +473,11 @@ document.getElementById("brute-force").addEventListener("click", async () => {
   const useFourPlusWords = document.getElementById("use-four-plus-words").checked;
   const keyLength = parseInt(document.getElementById("key-length").value, 10);
   const partialKey = document.getElementById("partial-key").value.toUpperCase();
+  const wildCardKey = {
+    left: document.getElementById("left-key").value.toUpperCase(),
+    mid: document.getElementById("mid-key").value.toUpperCase(),
+    right: document.getElementById("right-key").value.toUpperCase(),
+  };
 
   if (!cipher) {
     alert("Please enter a cipher word.");
@@ -503,7 +505,8 @@ document.getElementById("brute-force").addEventListener("click", async () => {
     filterLettersRepeated,
     useWordListKeysOnly,
     useFourPlusWords,
-    partialKey
+    partialKey,
+    wildCardKey
   );
 });
 
@@ -513,4 +516,3 @@ window.addEventListener("DOMContentLoaded", async () => {
   await fetchExtraWords();
   combineWordLists();
 });
-
