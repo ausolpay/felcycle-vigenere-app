@@ -1,41 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vigenère Cipher Brute Forcer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Felcycle Challenge: Vigenère Decrypter</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .loading-animation {
-      animation: loading 1.5s infinite;
-    }
-
-    @keyframes loading {
-      0% { background-color: #4caf50; }
-      50% { background-color: #81c784; }
-      100% { background-color: #4caf50; }
-    }
-
-    .progress-bar {
-      width: 100%;
-      background-color: #f3f3f3;
-      border: 1px solid #ddd;
-      height: 20px;
-      margin-bottom: 10px;
-    }
-
-    .progress-bar > div {
-      height: 100%;
-      width: 0;
-      background-color: #4caf50;
-    }
-  </style>
 </head>
-<body>
+<body class="dark-mode">
   <div class="app-container">
-    <h1>Vigenère Cipher Brute Forcer</h1>
+    <div class="image-container">
+      <img src="fel.png" alt="Fel Logo" class="fel-logo">
+    </div>
+    <h1 style="white-space: pre;">Felcycle Challenge: Vigenère Decrypter</h1>
     <div style="text-align: center; margin-bottom: 25px;">
-      <a href="README-APP.pdf" target="_blank">READ ME - How to use</a>
+      <a href="README-APP.pdf" target="_blank" class="readme-link">READ ME - How to use</a>
     </div>
 
     <!-- Input for Cipher Word -->
@@ -57,12 +35,11 @@
 
     <div class="input-group">
       <label>Add Wild Card: (@flame)</label>
-      <p style="font-size: 12px;">If Wild Card keys are added, the 'Key Length for Brute Force' should match the remaining characters you want left in your decrypted key (eg. 2 letters added to left key and 2 characters 'Key Length for Brute Force' will produce 4 character length decrypted keys)</p>
+      <p style="font-size: 12px;">If Wild Card keys are added, the 'Key Length for Brute Force' should match the remaining characters you want left in your decrypted key (e.g., adding 2 letters to the left key and having 'Key Length for Brute Force' set to 2 will produce 4-character keys.)</p>
       <input type="text" id="left-key" placeholder="Left Key">
       <input type="text" id="right-key" placeholder="Right Key">
       <input type="text" id="mid-key">
     </div>
-    
 
     <!-- Key Length Selection -->
     <div class="input-group">
@@ -86,6 +63,8 @@
       <label><input type="checkbox" id="filter-common-words"> Only Keys with Common Words</label>
       <label><input type="checkbox" id="filter-letters-repeated"> Only Results with Letters Repeated Twice</label>
       <label><input type="checkbox" id="use-word-list-keys-only"> Use Word List Keys Only</label>
+      <label><input type="checkbox" id="shift-by-20"> Shift Vigenère table by 20</label>
+      <label><input type="checkbox" id="start-from-20"> Start Vigenère table from 20th letter</label>
       <label style="visibility: hidden;"><input type="checkbox" id="use-four-plus-words"> Use Combined Word List Keys (4 Characters Only)</label>
     </div>
 
@@ -148,18 +127,35 @@
     <!-- Generate Anagrams -->
     <div class="filters">
       <h3>Generate Anagrams</h3>
-      <button id="generate-anagrams">Generate Anagrams</button>
+
+
+      
       <div class="progress-bar">
         <div id="anagram-progress"></div>
       </div>
       <p id="anagram-percentage" style="text-align: center; margin: 10px 0;">0%</p>
+      <div style="margin-bottom:10px;">
+        <input type="text" id="manual-anagram-input" placeholder="Enter words to add (optional)">
+        <button id="add-anagram-input">Add</button>
+      </div>
       <textarea id="anagrams" style="height: 200px;" placeholder="Anagrams will appear here" readonly></textarea>
+      <button id="generate-anagrams">Generate Anagrams</button>
     </div>
 
-    <!-- Reset Button -->
+    <!-- Reset Button and Mode Switch -->
     <div class="buttons">
       <button id="reset-app">Reset</button>
     </div>
+
+    <div class="mode-switch-container" style="text-align:center; margin-top:10px;">
+      <span class="mode-switch-text">Light</span>
+      <label class="mode-switch">
+        <input type="checkbox" id="mode-switch">
+        <span class="slider"></span>
+      </label>
+      <span class="mode-switch-text">Dark</span>
+    </div>
+
   </div>
 
   <script src="app.js"></script>
