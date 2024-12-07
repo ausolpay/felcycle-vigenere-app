@@ -38,7 +38,6 @@
       <a href="README-APP.pdf" target="_blank">READ ME - How to use</a>
     </div>
 
-
     <!-- Input for Cipher Word -->
     <div class="input-group">
       <label for="cipher">Cipher Word:</label>
@@ -55,6 +54,15 @@
       <label for="partial-key">Partial Key (Optional):</label>
       <input type="text" id="partial-key" placeholder="Enter partial key">
     </div>
+
+    <div class="input-group">
+      <label>Add Wild Card: (@flame)</label>
+      <p style="font-size: 12px;">If Wild Card keys are added, the 'Key Length for Brute Force' should match the remaining characters you want left in your decrypted key (eg. 2 letters added to left key and 2 characters 'Key Length for Brute Force' will produce 4 character length decrypted keys)</p>
+      <input type="text" id="left-key" placeholder="Left Key">
+      <input type="text" id="right-key" placeholder="Right Key">
+      <input type="text" id="mid-key">
+    </div>
+    
 
     <!-- Key Length Selection -->
     <div class="input-group">
