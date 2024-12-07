@@ -1,38 +1,103 @@
-/* styles.css */
+/* Base body styling */
 body {
   font-family: Arial, sans-serif;
-  background: #eef2f7;
   margin: 0;
   padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  color: var(--text-color);
+  transition: background 0.3s ease, color 0.3s ease;
+  position: relative;
 }
 
+/* Add a pseudo-element to display the faint bg image */
+body::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url("bg.jpg") center center no-repeat;
+  background-size: cover;
+  opacity: 0.22; /* About 8% visibility */
+  pointer-events: none; /* Ensure it doesn't interfere with interactions */
+  z-index: -1;
+}
 
+/* Light and dark mode variables */
+body.light-mode {
+  background: #f0f0f0;
+  --container-bg: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #ccc;
+  --text-color: #000000;
+  --progress-bg: #f3f3f3;
+  --progress-border: #ddd;
+  --progress-fill: #4caf50;
+  --button-bg: #0073e6;
+  --button-bg-hover: #005bb5;
+  --readme-link: #0073e6;
+}
+
+body.dark-mode {
+  background: #1f1f1f;
+  --container-bg: #2a2a2a;
+  --input-bg: #333;
+  --input-border: #444;
+  --text-color: #ffffff;
+  --progress-bg: #3a3a3a;
+  --progress-border: #444;
+  --progress-fill: #6293f5;
+  --button-bg: #4a4a4a;
+  --button-bg-hover: #5a5a5a;
+  --readme-link: #81b0ff;
+}
 
 .app-container {
-  background: white;
+  background: var(--container-bg);
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   padding: 20px;
   max-width: 700px;
   width: 100%;
-  color: #333;
+  color: inherit;
+  position: relative;
+  z-index: 1; /* Ensure content is above the pseudo-element */
+}
+
+/* Add the fel.png logo above the title */
+.image-container {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.fel-logo {
+  max-width: 100px;
+  height: auto;
 }
 
 h1 {
   text-align: center;
   margin-bottom: 20px;
   font-size: 24px;
-  color: #0073e6;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.readme-link {
+  color: var(--readme-link);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.readme-link:hover {
+  text-decoration: underline;
 }
 
 h2, h3 {
   margin-top: 20px;
   margin-bottom: 10px;
-  color: #005bb5;
+  color: inherit;
 }
 
 .input-group, .options {
@@ -43,14 +108,18 @@ label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
+  color: inherit;
 }
 
 input[type="text"], select, textarea {
-  width: 100%;
+  width: 97%;
   padding: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
   border-radius: 5px;
   font-size: 14px;
+  background: var(--input-bg);
+  color: inherit;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 textarea {
@@ -58,31 +127,32 @@ textarea {
   resize: none;
 }
 
-
-
 .progress-bar {
   width: 100%;
-  background-color: #f3f3f3;
-  border: 1px solid #ddd;
+  background-color: var(--progress-bg);
+  border: 1px solid var(--progress-border);
   height: 20px;
   margin-bottom: 10px;
   margin-top: 10px;
   border-radius: 10px;
   position: relative;
   overflow: hidden;
+  transition: background 0.3s ease, border 0.3s ease;
 }
 
 .progress-bar > div {
   height: 100%;
   width: 0%;
-  background-color: #4caf50;
-  transition: width 0.1s ease-out; /* Smooth animation for each progress update */
+  background-color: var(--progress-fill);
+  transition: width 0.1s ease-out, background 0.3s ease;
 }
 
 #left-key, #right-key {
-max-width: 40%;
-margin-right: 10px;
-margin-bottom: 10px;
+  max-width: 40%;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  background: var(--input-bg);
+  color: inherit;
 }
 
 #mid-key {
@@ -93,17 +163,20 @@ margin-bottom: 10px;
 #progress {
   width: 0;
   height: 100%;
-  background-color: #0073e6;
+  background-color: var(--progress-fill);
   border-radius: 10px;
-  transition: width 0.2s ease;
+  transition: width 0.2s ease, background 0.3s ease;
 }
 
 textarea#output, textarea#filtered-output, textarea#anagrams {
   margin-bottom: 15px;
+  background: var(--input-bg);
+  color: inherit;
 }
 
 .buttons {
   text-align: center;
+  margin: 10px 0;
 }
 
 button {
@@ -111,7 +184,7 @@ button {
   margin: 5px;
   border: none;
   border-radius: 5px;
-  background: #0073e6;
+  background: var(--button-bg);
   color: white;
   font-size: 14px;
   cursor: pointer;
@@ -119,5 +192,87 @@ button {
 }
 
 button:hover {
-  background: #005bb5;
+  background: var(--button-bg-hover);
+}
+
+.filters textarea {
+  background: var(--input-bg);
+  color: inherit;
+}
+
+.filters h3 {
+  color: inherit;
+}
+
+.results h2,
+.filters h3 {
+  border-bottom: 1px solid var(--input-border);
+  padding-bottom: 5px;
+}
+
+#anagrams {
+  background: var(--input-bg);
+  color: inherit;
+}
+
+.mode-switch-container {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.mode-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.mode-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right:0; bottom:0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.mode-switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom:4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+.mode-switch input:checked + .slider {
+  background-color: #0073e6;
+}
+
+.mode-switch input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.mode-switch-text {
+  vertical-align: middle;
+  font-weight: bold;
+  color: inherit;
+  margin-left: 5px;
+}
+
+#manual-anagram-input {
+  max-width: 80%;
 }
