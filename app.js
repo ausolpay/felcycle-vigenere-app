@@ -7,27 +7,24 @@ let combinedWordList = [];
 let combinedWordSet = new Set();
 let startTime;
 
-// Fetch the top 5000 common words
 async function fetchCommonWords() {
   try {
     const response = await fetch("https://api.datamuse.com/words?ml=common&max=5000");
     const data = await response.json();
     commonWords = data.map((word) => word.word.toUpperCase());
-    console.log("Fetched Common Words:", commonWords);
+    console.log("Fetched Common Words:", commonWords.length);
   } catch (error) {
     console.error("Error fetching common words:", error);
     commonWords = [];
   }
 }
 
-// Fetch extra words from `extra-words.js`
 async function fetchExtraWords() {
   try {
     const script = document.createElement("script");
     script.src = "extra-words.js";
     document.head.appendChild(script);
 
-    // Wait for script to load
     await new Promise((resolve) => {
       script.onload = resolve;
       script.onerror = () => {
@@ -36,7 +33,7 @@ async function fetchExtraWords() {
       };
     });
 
-    console.log("Loaded Extra Words:", window.extraWords);
+    console.log("Loaded Extra Words:", window.extraWords ? window.extraWords.length : 0);
     extraWords = window.extraWords || [];
   } catch (error) {
     console.error("Error fetching extra words:", error);
@@ -44,10 +41,9 @@ async function fetchExtraWords() {
   }
 }
 
-// Combine word lists
 function combineWordLists() {
   combinedWordList = [...new Set([...commonWords, ...extraWords])];
-  console.log("Combined Word List:", combinedWordList);
+  console.log("Combined Word List Count:", combinedWordList.length);
   combinedWordSet = new Set(combinedWordList);
 }
 
@@ -137,9 +133,7 @@ document.getElementById("generate-anagrams").addEventListener("click", () => {
     return;
   }
 
-  // Clear previous results
   anagramBox.value = "";
-
   anagramProgressBar.classList.add("loading-animation");
   anagramProgressBar.style.width = "0%";
   anagramProgressBar.style.transition = "none";
@@ -298,15 +292,16 @@ function applyWildCard(wildCardKey, dynamicKey) {
   return leftKey + dynamicKey + rightKey;
 }
 
-// Restore partial key function to previous working logic
 function generateKeyFunction(alphabet, partialKey, keyLength, wildCardKey) {
-  return function(index) {
-    const pLen = partialKey.length;
-    const numPositions = keyLength - pLen + 1;
-    const slots = keyLength - pLen;
-    const base = Math.pow(alphabet.length, slots);
-    const totalPossibleKeys = numPositions * base;
+  const pLen = partialKey.length;
+  const numPositions = keyLength - pLen + 1;
+  const slots = keyLength - pLen;
+  const base = Math.pow(alphabet.length, slots);
+  const totalPossibleKeys = numPositions * base;
 
+  console.log("Partial key logic:", { partialKey, keyLength, pLen, numPositions, slots, base });
+
+  return function(index) {
     const patternIndex = Math.floor(index / base);
     const remainder = index % base;
 
@@ -329,7 +324,12 @@ function generateKeyFunction(alphabet, partialKey, keyLength, wildCardKey) {
       temp = Math.floor(temp / alphabet.length);
     }
 
-    return applyWildCard(wildCardKey, keyArray.join(""));
+    const generatedKey = applyWildCard(wildCardKey, keyArray.join(""));
+    // Log every 10000th key to not spam the console too much
+    if (index % 10000 === 0) {
+      console.log("Generated Key (sample):", generatedKey);
+    }
+    return generatedKey;
   };
 }
 
@@ -369,15 +369,18 @@ async function bruteForce(
   if (useWordListKeysOnly) {
     keysToSearch = combinedWordList.filter((word) => word.length === keyLength);
     totalKeys = keysToSearch.length;
+    console.log("Using Word List Keys Only:", totalKeys);
   } else if (useFourPlusWords) {
     keysToSearch = combinedWordList.filter((word) => word.length >= 4);
     totalKeys = keysToSearch.length;
+    console.log("Using 4+ Word List Keys:", totalKeys);
   } else {
     const pLen = partialKey.length;
     const numPositions = keyLength - pLen + 1;
     const slots = keyLength - pLen;
     const base = Math.pow(alphabet.length, slots);
     totalKeys = numPositions * base;
+    console.log("Calculated total keys with partial key logic:", totalKeys);
   }
 
   let currentKeyIndex = 0;
@@ -525,13 +528,11 @@ document.getElementById("pause-resume").addEventListener("click", () => {
 });
 
 document.getElementById("brute-force").addEventListener("click", async () => {
-  // If brute forcing is in progress and hasn't been paused, stop it first
   if (bruteForceRunning && !bruteForcePaused) {
-    bruteForceRunning = false; // stop current brute force
+    bruteForceRunning = false;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  // Reset states for a new run
   bruteForcePaused = false;
   bruteForceRunning = false;
   document.getElementById("pause-resume").textContent = "Pause";
@@ -592,4 +593,5 @@ window.addEventListener("DOMContentLoaded", async () => {
   await fetchCommonWords();
   await fetchExtraWords();
   combineWordLists();
+  console.log("DOM fully loaded, words combined. Ready for partial key logic.");
 });
